@@ -1,0 +1,21 @@
+{
+  "login": true,
+  "page": 200,
+  "nodes": [
+    {
+      "node": "n0",
+      "leader": true,
+      "applied": 0
+    },
+    {
+      "node": "n1",
+      "leader": false,
+      "applied": 0
+    },
+    {
+      "node": "n2",
+      "leader": false,
+      "applied": 0
+    }
+  ]
+}

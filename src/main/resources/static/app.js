@@ -1,0 +1,70 @@
+const {createApp,ref,computed,onMounted,onUnmounted,nextTick,watch}=Vue;
+const icons={building:'M3 21h18M5 21V7l7-4 7 4v14M9 21v-5h6v5M9 8h.01M15 8h.01M9 12h.01M15 12h.01',calendar:'M4 5h16v16H4zM16 3v4M8 3v4M4 11h16M8 15h2M14 15h2',grid:'M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z',inbox:'M4 4h16l2 13v3H2v-3L4 4zM2 16h6l2 3h4l2-3h6',clock:'M12 8v5l3 2M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0',users:'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M16 3a4 4 0 0 1 0 8M22 21v-2a4 4 0 0 0-3-3.87M13 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0',pin:'M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 0 1 16 0M15 10a3 3 0 1 1-6 0 3 3 0 0 1 6 0',search:'M21 21l-5-5M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0',check:'M20 6 9 17l-5-5',close:'M18 6 6 18M6 6l12 12',help:'M9.1 9a3 3 0 0 1 5.8 1c0 2-3 2-3 4M12 17h.01M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0',refresh:'M20 7v5h-5M4 17v-5h5M5.5 7a8 8 0 0 1 13.2-1L20 9M4 15l1.3 3A8 8 0 0 0 18.5 17',chart:'M4 3v18h17M8 17v-5M13 17V7M18 17v-9',shield:'M12 3 3 7v5c0 5 9 10 9 10s9-5 9-10V7l-9-4zM8 12l3 3 5-6',file:'M14 2H4v20h16V8l-6-6zM14 2v6h6M8 13h8M8 17h6',wallet:'M3 6h17v14H3zM3 6V4h15M16 11h6v5h-6z'};
+const Icon={props:['name'],template:'<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path :d="path"/></svg>',computed:{path(){return icons[this.name]||icons.building}}};
+const StatCard={props:['label','value','hint','icon','color'],components:{Icon},template:'<article class="stat-card"><div class="stat-card-top"><span>{{label}}</span><span class="stat-icon" :class="color||\'green\'"><icon :name="icon"/></span></div><strong>{{value}}</strong><p>{{hint}}</p></article>'};
+createApp({components:{Icon,StatCard},setup(){
+ const booting=ref(true),user=ref(null),route=ref('venues'),mobileNav=ref(false),busy=ref(false),loading=ref(false),pageError=ref(''),loginError=ref('');
+ const venues=ref([]),bookings=ref([]),closures=ref([]),audit=ref([]),stats=ref(null),toast=ref(null);
+ const loginForm=ref({username:'',password:''}),modal=ref(''),modalError=ref(''),modalEl=ref(null),form=ref({}),selectedVenue=ref(null),selectedBooking=ref(null),detailLogs=ref([]),schedule=ref({bookings:[],closures:[]}),scheduleDate=ref(''),scheduleLoading=ref(false),impact=ref(null);
+ const localInput=(d)=>{const x=new Date(d);return new Intl.DateTimeFormat('sv-SE',{timeZone:'Asia/Shanghai',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false}).format(x).replace(' ','T')};
+ const day=(n=0)=>{let d=new Date();d.setDate(d.getDate()+n);return localInput(d).slice(0,10)};
+ const filters=ref({search:'',date:day(2),people:'',category:'全部场所'}),bookingFilters=ref({search:'',status:'',date:''});
+ const statsFilter=ref({from:day(-30),to:day(30),venueId:''});
+ const isAdmin=computed(()=>user.value?.role==='ADMIN');
+ const statusOptions=[{value:'',label:'全部状态'},{value:'PENDING',label:'待审核'},{value:'APPROVED',label:'已批准'},{value:'REJECTED',label:'已驳回'},{value:'CANCELLED',label:'已取消'},{value:'IN_USE',label:'使用中'},{value:'COMPLETED',label:'已完成'}];
+ const statusLabel=s=>statusOptions.find(x=>x.value===s)?.label||s;
+ const statusClass=s=>({PENDING:'amber',APPROVED:'green',REJECTED:'red',CANCELLED:'gray',IN_USE:'blue',COMPLETED:'purple'}[s]||'gray');
+ const money=x=>Number(x||0).toLocaleString('zh-CN',{minimumFractionDigits:2,maximumFractionDigits:2});
+ const fmt=s=>s?String(s).slice(0,16).replace('T',' '):'—';
+ const timeOnly=s=>s?String(s).slice(11,16):'';
+ const bookingNo=id=>'YY'+String(id).padStart(6,'0');
+ const isPast=s=>new Date(s+'+08:00')<new Date();
+ const todayText=new Intl.DateTimeFormat('zh-CN',{timeZone:'Asia/Shanghai',year:'numeric',month:'long',day:'numeric',weekday:'long'}).format(new Date());
+ const navigation=computed(()=>[{key:'venues',label:'场所查询',icon:'building'},{key:'bookings',label:isAdmin.value?'预约审批':'我的预约',icon:'calendar'}]);
+ const pageTitle=computed(()=>navigation.value.find(n=>n.key===route.value)?.label||'场所查询');
+ const pageKicker=computed(()=>({venues:'DISCOVER YOUR SPACE',dashboard:'YOUR CAMPUS AT A GLANCE',bookings:'RESERVATIONS',closures:'SPACE AVAILABILITY',usage:'USAGE & PAYMENTS',stats:'INSIGHTS & REPORTS',audit:'ACTIVITY HISTORY'}[route.value]));
+ const pageSubtitle=computed(()=>({venues:isAdmin.value?'维护校园活动空间，查看开放安排与预约日程。':'从这里，开启你的下一场校园活动。',dashboard:'关注每一笔申请，让空间的使用更有序。',bookings:isAdmin.value?'核对用途、人数和时段，批准前系统将再次检查冲突。':'追踪申请进度，查看审批结果和活动使用记录。',closures:'维护停用安排，及时处理受影响的活动。',usage:'登记实际使用时间，核算并确认线下缴费。',stats:'按日期和场所查看预约、取消、使用与费用情况。',audit:'审批、取消、使用登记和费用确认，均有迹可循。'}[route.value]));
+ const pendingCount=computed(()=>bookings.value.filter(b=>b.status==='PENDING').length);
+ const filteredVenues=computed(()=>venues.value.filter(v=>(isAdmin.value||v.active)&&(filters.value.category==='全部场所'||v.category===filters.value.category)&&(!filters.value.people||v.capacity>=Number(filters.value.people))&&[v.name,v.location,v.equipment].join(' ').toLowerCase().includes(filters.value.search.toLowerCase())));
+ const filteredBookings=computed(()=>bookings.value.filter(b=>(route.value!=='usage'||['APPROVED','IN_USE','COMPLETED'].includes(b.status))&&(!bookingFilters.value.status||b.status===bookingFilters.value.status)&&(!bookingFilters.value.date||String(b.start_time).startsWith(bookingFilters.value.date))&&[b.purpose,b.venue_name,bookingNo(b.id),b.applicant_name].join(' ').toLowerCase().includes(bookingFilters.value.search.toLowerCase())));
+ const scheduleItems=computed(()=>[...schedule.value.bookings.map(b=>({...b,kind:'booking'})),...schedule.value.closures.map(c=>({...c,kind:'closure'}))].sort((a,b)=>String(a.start_time).localeCompare(String(b.start_time))));
+ const estimatedFee=computed(()=>{let hours=(new Date(form.value.end_time)-new Date(form.value.start_time))/3600000;return Number(selectedVenue.value?.hourly_rate)===0?'免费':hours>0?'¥'+money(hours*Number(selectedVenue.value?.hourly_rate)):'请选择时间'});
+ const actionLabel=computed(()=>({reject:'驳回',cancel:'取消预约',start:'登记到场',finish:'登记结束',pay:'已收款'}[modal.value]||''));
+ const modalTitle=computed(()=>({venue:'场所详情与日程',booking:'提交预约申请',detail:'预约详情',reject:'驳回预约',cancel:'取消预约',start:'登记实际到场',finish:'登记实际结束',pay:'确认线下缴费',editVenue:form.value.id?'编辑场所':'新增场所',closure:'设置场所停用',help:'使用指南'}[modal.value]||''));
+ let toastTimer,previousFocus;
+ function notify(message,kind='success'){toast.value={message,kind};clearTimeout(toastTimer);toastTimer=setTimeout(()=>toast.value=null,4500)}
+ async function api(path,method='GET',data){const slot='kv-request:'+method+':'+path+':'+JSON.stringify(data);let rid=localStorage.getItem(slot)||crypto.randomUUID();if(method!=='GET')localStorage.setItem(slot,rid);let res=await fetch('/api'+path,{method,credentials:'same-origin',headers:method==='GET'?{}:{'Content-Type':'application/json','X-Request-ID':rid},body:data===undefined?undefined:JSON.stringify(data)});let json=await res.json().catch(()=>({message:'服务响应异常'}));if(res.ok||res.status<500)localStorage.removeItem(slot);if(!res.ok){if(res.status===401&&path!=='/auth/login'){user.value=null;modal.value='';loginError.value='登录已过期，请重新登录'}throw new Error((json.message||'请求失败')+(res.status>=500?'；请求 ID：'+rid:''))}return json}
+ function fillLogin(account){loginForm.value={username:account,password:account==='admin'?'Admin@12345':'Student@12345'};loginError.value=''}
+ async function login(){busy.value=true;loginError.value='';try{user.value=await api('/auth/login','POST',loginForm.value);go('venues');await refresh();}catch(e){loginError.value=e.message}finally{busy.value=false}}
+ async function logout(){try{await api('/auth/logout','POST',{});user.value=null;venues.value=[];bookings.value=[];modal.value='';loginForm.value.password='';location.hash='';}catch(e){notify(e.message,'error')}}
+ function go(key){if(!navigation.value.some(n=>n.key===key))key='venues';route.value=key;location.hash=key;mobileNav.value=false;pageError.value='';if(key==='stats')loadStats()}
+ async function refresh(){if(!user.value)return;loading.value=true;pageError.value='';try{const results=await Promise.all([api('/venues'),api('/bookings'),...(isAdmin.value?[api('/closures'),api('/audit')]:[])]);venues.value=results[0];bookings.value=results[1];if(isAdmin.value){closures.value=results[2];audit.value=results[3]}if(route.value==='stats')await loadStats();}catch(e){pageError.value=e.message}finally{loading.value=false}}
+ function resetFilters(){filters.value={search:'',date:day(2),people:'',category:'全部场所'}}
+ function setModal(type){previousFocus=document.activeElement;modalError.value='';modal.value=type;nextTick(()=>{modalEl.value?.focus();document.body.style.overflow='hidden'})}
+ function closeModal(){if(busy.value)return;modal.value='';modalError.value='';document.body.style.overflow='';previousFocus?.focus?.()}
+ watch(modal,v=>{if(!v)document.body.style.overflow=''});
+ async function viewVenue(v){selectedVenue.value=v;scheduleDate.value=filters.value.date||day(2);schedule.value={bookings:[],closures:[]};setModal('venue');await loadSchedule()}
+ let scheduleRequest=0;
+ async function loadSchedule(){if(!scheduleDate.value)return;const request=++scheduleRequest;scheduleLoading.value=true;modalError.value='';try{const result=await api('/venues/'+selectedVenue.value.id+'/schedule?date='+scheduleDate.value);if(request===scheduleRequest)schedule.value=result}catch(e){modalError.value=e.message}finally{if(request===scheduleRequest)scheduleLoading.value=false}}
+ function newBooking(v){form.value={venue_id:v.id,start_time:scheduleDate.value+'T14:00',end_time:scheduleDate.value+'T16:00',attendees:Number(filters.value.people)||1,purpose:''};setModal('booking')}
+ async function mutate(task,message){if(busy.value)return;busy.value=true;modalError.value='';try{await task();modal.value='';notify(message);await refresh();}catch(e){if(modal.value)modalError.value=e.message;else notify(e.message,'error')}finally{busy.value=false}}
+ function submitBooking(){mutate(()=>api('/bookings','POST',form.value),'预约申请已提交，请等待审核')}
+ async function detail(b){try{let d=await api('/bookings/'+b.id);selectedBooking.value=d.booking;detailLogs.value=d.logs;setModal('detail')}catch(e){notify(e.message,'error')}}
+ function approve(b){mutate(()=>api('/bookings/'+b.id+'/approve','POST',{}),'已批准预约，时段已锁定')}
+ function openAction(action,b){selectedBooking.value=b;form.value={reason:'',actual_start:String(b.start_time).slice(0,16),actual_end:String(b.end_time).slice(0,16),note:b.note||''};setModal(action)}
+ function submitAction(){const action=modal.value;mutate(()=>api('/bookings/'+selectedBooking.value.id+'/'+({pay:'paid'}[action]||action),'POST',form.value),({reject:'已驳回并记录原因',cancel:'预约已取消，原占用时段已释放',start:'实际到场已登记',finish:'使用已完成，费用已核算',pay:'线下缴费结果已确认'}[action]))}
+ function editVenue(v){form.value=v?{...v}:{name:'',location:'',capacity:24,equipment:'',open_time:'08:00',close_time:'22:00',hourly_rate:0,category:'会议室',description:'',active:true};setModal('editVenue')}
+ function submitVenue(){mutate(()=>api('/venues'+(form.value.id?'/'+form.value.id:''),form.value.id?'PUT':'POST',form.value),'场所信息已保存')}
+ function newClosure(){form.value={venue_id:venues.value[0]?.id,start_time:day(2)+'T08:00',end_time:day(2)+'T18:00',reason:'',cancel_affected:false};impact.value=null;setModal('closure')}
+ function clearImpact(){impact.value=null;form.value.cancel_affected=false}
+ async function previewClosure(){if(busy.value)return;busy.value=true;modalError.value='';try{impact.value=await api('/closures/preview','POST',form.value)}catch(e){modalError.value=e.message}finally{busy.value=false}}
+ function submitClosure(){mutate(()=>api('/closures','POST',form.value),'停用安排已生效，相关处理记录已保存')}
+ function reopen(c){if(!window.confirm('确认解除“'+c.venue_name+'”的这条停用安排？已取消的预约不会自动恢复。'))return;mutate(()=>api('/closures/'+c.id+'/reopen','POST',{}),'停用安排已解除')}
+ async function loadStats(){if(!isAdmin.value)return;try{const q=new URLSearchParams({from:statsFilter.value.from,to:statsFilter.value.to});if(statsFilter.value.venueId)q.set('venueId',statsFilter.value.venueId);stats.value=await api('/stats?'+q)}catch(e){notify(e.message,'error')}}
+ function openHelp(){setModal('help')}
+ function hashChange(){if(user.value)go(location.hash.slice(1))}
+ function keyHandler(e){if(!modal.value)return;if(e.key==='Escape')closeModal();if(e.key==='Tab'){const els=[...modalEl.value.querySelectorAll('button:not([disabled]),input:not([disabled]),select,textarea,a[href]')].filter(el=>el.offsetParent!==null);const first=els[0],last=els[els.length-1];if(!first){e.preventDefault();return}if(e.shiftKey&&(document.activeElement===first||document.activeElement===modalEl.value)){last.focus();e.preventDefault()}else if(!e.shiftKey&&document.activeElement===last){first.focus();e.preventDefault()}}}
+ onMounted(async()=>{window.addEventListener('hashchange',hashChange);document.addEventListener('keydown',keyHandler);try{const res=await fetch('/api/auth/me');if(res.ok){user.value=await res.json();go(location.hash.slice(1)|| (isAdmin.value?'dashboard':'venues'));await refresh()}}catch(e){loginError.value='无法连接服务，请确认程序已经启动'}finally{booting.value=false}});
+ onUnmounted(()=>{window.removeEventListener('hashchange',hashChange);document.removeEventListener('keydown',keyHandler);clearTimeout(toastTimer)});
+ return {booting,user,route,mobileNav,busy,loading,pageError,loginError,venues,bookings,closures,audit,stats,toast,loginForm,modal,modalError,modalEl,form,selectedVenue,selectedBooking,detailLogs,scheduleDate,scheduleLoading,impact,filters,bookingFilters,statsFilter,isAdmin,statusOptions,statusLabel,statusClass,money,fmt,timeOnly,bookingNo,isPast,todayText,navigation,pageTitle,pageKicker,pageSubtitle,pendingCount,filteredVenues,filteredBookings,scheduleItems,estimatedFee,actionLabel,modalTitle,login,logout,fillLogin,go,refresh,resetFilters,closeModal,viewVenue,loadSchedule,newBooking,submitBooking,detail,approve,openAction,submitAction,editVenue,submitVenue,newClosure,clearImpact,previewClosure,submitClosure,reopen,loadStats,openHelp};
+}}).mount('#app');

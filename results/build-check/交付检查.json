@@ -1,0 +1,9 @@
+{
+  "date": "2026-11-24",
+  "tests": 16,
+  "failures": 0,
+  "errors": 0,
+  "latestPptSha256": "9DBDA9559672E12BA77821B2CC9FE6B00D91D68B42C8F6C6E007A040998B8D15",
+  "startup": "登录成功，页面HTTP200，三节点可达且仅一个主节点；检查后已停止",
+  "historicalFaultExperiments": "results/reference-2026-11-20，原始记录，非本次重跑"
+}

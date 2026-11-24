@@ -1,0 +1,163 @@
+{
+  "run": "1795148483781",
+  "environment": {
+    "platform": "win32",
+    "cpu": "AMD Ryzen 7 7840H with Radeon 780M Graphics",
+    "memory": 16312553472,
+    "node": "v24.18.0"
+  },
+  "results": [
+    {
+      "id": "E01",
+      "passed": true,
+      "ms": 493,
+      "evidence": {
+        "bookingA": 1,
+        "bookingB": 2,
+        "adjacent": 3
+      }
+    },
+    {
+      "id": "E02",
+      "passed": true,
+      "ms": 243,
+      "evidence": {
+        "cas": [
+          {
+            "code": "OK"
+          },
+          {
+            "code": "VERSION_CONFLICT"
+          }
+        ],
+        "approvals": [
+          409,
+          200
+        ]
+      }
+    },
+    {
+      "id": "E03",
+      "passed": true,
+      "ms": 7767,
+      "evidence": {
+        "stoppedFollower": 0,
+        "stoppedLeader": 2
+      }
+    },
+    {
+      "id": "E04",
+      "passed": true,
+      "ms": 7446,
+      "evidence": {
+        "isolated": 1,
+        "minorityWriteReadStatuses": [
+          409,
+          409
+        ],
+        "leaders": [
+          true,
+          false,
+          false
+        ],
+        "majorityValue": 1
+      }
+    },
+    {
+      "id": "E05",
+      "passed": true,
+      "ms": 66,
+      "evidence": {
+        "command": {
+          "op": "PUT",
+          "key": "experiment:1795148483781:duplicate",
+          "value": 7,
+          "requestId": "0c71fb29-d86f-4fcf-bd89-2ce16f880747",
+          "digest": "e4d34f42-ec2a-491c-b4c6-ea998ce1de5d"
+        },
+        "version": 1
+      }
+    },
+    {
+      "id": "E06",
+      "passed": true,
+      "ms": 10100,
+      "evidence": {
+        "delayMs": 10000,
+        "value": "new",
+        "injectionLayer": "business command delivery"
+      }
+    },
+    {
+      "id": "E07",
+      "passed": true,
+      "ms": 73,
+      "evidence": {
+        "rid": "a171e7aa-93a7-4550-a4d1-177d23c4298a",
+        "id": 6,
+        "injectionLayer": "HTTP response replaced after committed apply"
+      }
+    },
+    {
+      "id": "E08",
+      "passed": true,
+      "ms": 5919,
+      "evidence": {
+        "value": 42,
+        "version": 1,
+        "diskPreserved": true
+      }
+    },
+    {
+      "id": "E09",
+      "passed": true,
+      "ms": 169,
+      "evidence": {
+        "partialNotPublished": true,
+        "authoritativeGroupAvailable": true,
+        "scope": "non-voting staging import, no ownership transfer"
+      }
+    },
+    {
+      "id": "E10",
+      "passed": true,
+      "ms": 9426,
+      "evidence": {
+        "rows": 24,
+        "samples": 960,
+        "note": "PUT/GET load; business contention separately covered by E02"
+      }
+    },
+    {
+      "id": "E11",
+      "passed": true,
+      "ms": 139,
+      "evidence": {
+        "beforeTime": "2026-11-20T12:22:09.7986352",
+        "shiftedTime": "2026-11-20T12:21:09.830210400",
+        "version": 2,
+        "boundaryBefore": 200,
+        "boundaryAfter": 400,
+        "note": "business clock affects time admission; logical versions remain increasing"
+      }
+    },
+    {
+      "id": "E12",
+      "passed": true,
+      "ms": 1526,
+      "evidence": {
+        "hashes": [
+          "94fff81745f28c3d68f90b3c5b243de2ac9beed30bb6e50e194db226592ac596",
+          "94fff81745f28c3d68f90b3c5b243de2ac9beed30bb6e50e194db226592ac596",
+          "94fff81745f28c3d68f90b3c5b243de2ac9beed30bb6e50e194db226592ac596"
+        ],
+        "applied": [
+          2172,
+          2172,
+          2172
+        ],
+        "approved": 3
+      }
+    }
+  ]
+}
